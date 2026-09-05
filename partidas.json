@@ -1,0 +1,82 @@
+{
+    "Match 1": {
+        "esquerdo": [
+            "Augustin",
+            "Pedro Ruim",
+            "Ricardin",
+            "Loves",
+            "Rafinsk"
+        ],
+        "direito": [
+            "Felpz",
+            "Valbim",
+            "Carioca",
+            "Tonho",
+            "Marcello"
+        ]
+    },
+    "Match 2": {
+        "esquerdo": [
+            "Marcello",
+            "Rafinsk",
+            "Loves",
+            "Carioca",
+            "Felpz"
+        ],
+        "direito": [
+            "Valbim",
+            "Pedro Ruim",
+            "Tonho",
+            "Ricardin",
+            "Augustin"
+        ]
+    },
+    "Match 3": {
+        "esquerdo": [
+            "Marcello",
+            "Augustin",
+            "Carioca",
+            "Tonho",
+            "Valbim"
+        ],
+        "direito": [
+            "Pedro Ruim",
+            "Ricardin",
+            "Rafinsk",
+            "Felpz",
+            "Loves"
+        ]
+    },
+    "Match 4": {
+        "esquerdo": [
+            "Carioca",
+            "Pedro Ruim",
+            "Felpz",
+            "Marcello",
+            "Loves"
+        ],
+        "direito": [
+            "Rafinsk",
+            "Valbim",
+            "Augustin",
+            "Ricardin",
+            "Tonho"
+        ]
+    },
+    "Match 5": {
+        "esquerdo": [
+            "Augustin",
+            "Pedro Ruim",
+            "Valbim",
+            "Tonho",
+            "Ricardin"
+        ],
+        "direito": [
+            "Felpz",
+            "Rafinsk",
+            "Marcello",
+            "Loves",
+            "Carioca"
+        ]
+    }
+}
