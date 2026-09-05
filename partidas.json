@@ -1,82 +1,300 @@
 {
-    "Match 1": {
-        "esquerdo": [
-            "Augustin",
-            "Pedro Ruim",
-            "Ricardin",
-            "Loves",
-            "Rafinsk"
-        ],
-        "direito": [
-            "Felpz",
-            "Valbim",
-            "Carioca",
-            "Tonho",
-            "Marcello"
-        ]
+    "1545881234012377178": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
     },
-    "Match 2": {
-        "esquerdo": [
-            "Marcello",
-            "Rafinsk",
-            "Loves",
-            "Carioca",
-            "Felpz"
-        ],
-        "direito": [
-            "Valbim",
-            "Pedro Ruim",
-            "Tonho",
-            "Ricardin",
-            "Augustin"
-        ]
+    "1545881234305982557": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
     },
-    "Match 3": {
-        "esquerdo": [
-            "Marcello",
-            "Augustin",
-            "Carioca",
-            "Tonho",
-            "Valbim"
-        ],
-        "direito": [
-            "Pedro Ruim",
-            "Ricardin",
-            "Rafinsk",
-            "Felpz",
-            "Loves"
-        ]
+    "1545881233018458113": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
     },
-    "Match 4": {
-        "esquerdo": [
-            "Carioca",
-            "Pedro Ruim",
-            "Felpz",
-            "Marcello",
-            "Loves"
-        ],
-        "direito": [
-            "Rafinsk",
-            "Valbim",
-            "Augustin",
-            "Ricardin",
-            "Tonho"
-        ]
+    "1545881234440192050": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
     },
-    "Match 5": {
-        "esquerdo": [
-            "Augustin",
-            "Pedro Ruim",
-            "Valbim",
-            "Tonho",
-            "Ricardin"
-        ],
-        "direito": [
-            "Felpz",
-            "Rafinsk",
-            "Marcello",
-            "Loves",
-            "Carioca"
-        ]
+    "1545881250496122924": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
+    },
+    "1545882153277988986": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        }
+    },
+    "1545882858743275700": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        },
+        "companion_message_id": "1545882860442099804"
+    },
+    "1545883687206518824": {
+        "channel_id": "1407754969180012574",
+        "partidas": {
+            "Match 1": {
+                "esquerdo": [
+                    "Augustin",
+                    "Pedro Ruim",
+                    "Ricardin",
+                    "Loves",
+                    "Rafinsk"
+                ],
+                "direito": [
+                    "Felpz",
+                    "Valbim",
+                    "Carioca",
+                    "Tonho",
+                    "Marcello"
+                ]
+            },
+            "Match 2": {
+                "esquerdo": [
+                    "Marcello",
+                    "Rafinsk",
+                    "Loves",
+                    "Carioca",
+                    "Felpz"
+                ],
+                "direito": [
+                    "Valbim",
+                    "Pedro Ruim",
+                    "Tonho",
+                    "Ricardin",
+                    "Augustin"
+                ]
+            }
+        },
+        "companion_message_id": "1545883689068535818"
     }
 }
