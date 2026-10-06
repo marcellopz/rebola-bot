@@ -347,7 +347,7 @@ async def resolve_command_poll(ctx):
                 referenced = None
         found = await resolve_poll_from_message(ctx.channel, referenced)
         if found:
-            return found
+            return await fetch_poll_message(ctx.channel, found.id)
     return await find_latest_poll(ctx.channel)
 
 
@@ -359,39 +359,50 @@ async def collect_voters(answer):
         return None
 
 
-async def refresh_pending_voters(poll_message):
-    entry = get_poll_entry(poll_message.id)
-    if not entry:
-        return
+async def fetch_voters_by_answer(poll_message):
+    """Busca em paralelo os votantes de todas as opções com voto. `poll_message` deve estar atualizada."""
+    answers = [answer for answer in poll_message.poll.answers if (answer.vote_count or 0) > 0]
+    results = await asyncio.gather(*(collect_voters(answer) for answer in answers))
+    if any(voters is None for voters in results):
+        return None
+    return {answer.id: voters for answer, voters in zip(answers, results)}
 
-    companion_id = entry.get("companion_message_id")
-    partidas = entry.get("partidas")
-    if not companion_id or not isinstance(partidas, dict):
-        return
 
-    try:
-        poll_message = await poll_message.channel.fetch_message(poll_message.id)
-    except discord.HTTPException:
-        return
-    if poll_message.poll is None:
-        return
+def build_pending_embed(poll_message_id, voters_by_answer):
+    entry = get_poll_entry(poll_message_id)
+    partidas = entry.get("partidas") if isinstance(entry, dict) else None
+    if not isinstance(partidas, dict):
+        return None
 
     links = load_links()
-    voted_nicks = set()
-    for answer in poll_message.poll.answers:
-        voters = await collect_voters(answer)
-        if voters is None:
-            return
-        for voter in voters:
-            nickname = links.get(str(voter.id))
-            if nickname:
-                voted_nicks.add(nick_key(nickname))
+    voted_nicks = {
+        nick_key(links[str(voter.id)])
+        for voters in voters_by_answer.values()
+        for voter in voters
+        if links.get(str(voter.id))
+    }
+    return pending_voters_embed(partidas, voted_nicks)
 
+
+async def edit_pending_message(poll_message, embed):
+    entry = get_poll_entry(poll_message.id)
+    companion_id = entry.get("companion_message_id") if isinstance(entry, dict) else None
+    if not companion_id or embed is None:
+        return
     try:
-        companion = await poll_message.channel.fetch_message(int(companion_id))
-        await companion.edit(embed=pending_voters_embed(partidas, voted_nicks))
+        await poll_message.channel.get_partial_message(int(companion_id)).edit(embed=embed)
     except (discord.NotFound, discord.HTTPException, TypeError, ValueError):
         log.exception("Não foi possível atualizar a lista de quem ainda não votou")
+
+
+async def refresh_pending_voters(poll_message):
+    """`poll_message` deve estar atualizada."""
+    if poll_message.poll is None or not get_poll_entry(poll_message.id):
+        return
+    voters_by_answer = await fetch_voters_by_answer(poll_message)
+    if voters_by_answer is None:
+        return
+    await edit_pending_message(poll_message, build_pending_embed(poll_message.id, voters_by_answer))
 
 
 def winning_match_embed(nome, times):
@@ -406,13 +417,11 @@ def winning_match_embed(nome, times):
     return embed
 
 
-async def perform_audit(poll_message):
-    """Retorna o embed do resultado e o embed da partida vencedora, se aprovada."""
-    try:
-        poll_message = await poll_message.channel.fetch_message(poll_message.id)
-    except discord.HTTPException:
-        return simple_embed("Auditoria", "Não consegui atualizar os dados dessa enquete."), None
+def perform_audit(poll_message, voters_by_answer):
+    """Retorna o embed do resultado e o embed da partida vencedora, se aprovada.
 
+    `poll_message` deve estar atualizada; `voters_by_answer` vem de `fetch_voters_by_answer`.
+    """
     poll = poll_message.poll
     if poll is None:
         return simple_embed("Auditoria", "Essa mensagem não é uma enquete."), None
@@ -471,7 +480,7 @@ async def perform_audit(poll_message):
     mapa_esq = {nick_key(nome): nome for nome in time_esquerdo}
     mapa_dir = {nick_key(nome): nome for nome in time_direito}
 
-    votantes = await collect_voters(opcao_vencedora)
+    votantes = voters_by_answer.get(opcao_vencedora.id) if voters_by_answer is not None else None
     if votantes is None:
         return attach_poll_link(
             simple_embed(
@@ -546,17 +555,18 @@ async def perform_audit(poll_message):
     return attach_poll_link(embed, attach_poll_link_later), vencedora
 
 
-async def send_audit_result(embed, poll_message, ctx=None, interaction=None, winner_embed=None):
-    if interaction is not None:
-        send = interaction.followup.send
-    elif ctx is not None:
-        send = ctx.send
-    else:
-        send = poll_message.channel.send
+async def run_audit(poll_message):
+    """Retorna os embeds do resultado e o embed atualizado de quem ainda não votou.
 
-    await send(embed=embed)
-    if winner_embed is not None:
-        await send(embed=winner_embed)
+    `poll_message` deve estar atualizada.
+    """
+    voters_by_answer = await fetch_voters_by_answer(poll_message)
+    embed, winner_embed = perform_audit(poll_message, voters_by_answer)
+    embeds = [embed] if winner_embed is None else [embed, winner_embed]
+    pending_embed = None
+    if voters_by_answer is not None:
+        pending_embed = build_pending_embed(poll_message.id, voters_by_answer)
+    return embeds, pending_embed
 
 
 _audits_em_andamento = set()
@@ -587,13 +597,17 @@ class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:
             return
 
         _audits_em_andamento.add(self.poll_id)
+        pending_embed = None
         try:
             await interaction.response.edit_message(view=make_audit_view(self.poll_id, loading=True))
-            await self._run_audit(interaction)
+            pending_embed = await self._run_audit(interaction)
         finally:
             _audits_em_andamento.discard(self.poll_id)
+            restore = {"view": make_audit_view(self.poll_id)}
+            if pending_embed is not None:
+                restore["embed"] = pending_embed
             try:
-                await interaction.edit_original_response(view=make_audit_view(self.poll_id))
+                await interaction.edit_original_response(**restore)
             except discord.HTTPException:
                 log.exception("Não foi possível reativar o botão Auditar")
 
@@ -601,7 +615,7 @@ class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:
         channel = interaction.channel
         if channel is None:
             await interaction.followup.send("Não consegui acessar o canal.", ephemeral=True)
-            return
+            return None
 
         poll_message = await fetch_poll_message(channel, self.poll_id)
         if poll_message is None:
@@ -609,16 +623,11 @@ class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:
                 "Não encontrei a enquete ligada a este botão.",
                 ephemeral=True,
             )
-            return
+            return None
 
-        embed, winner_embed = await perform_audit(poll_message)
-        await refresh_pending_voters(poll_message)
-        await send_audit_result(
-            embed,
-            poll_message,
-            interaction=interaction,
-            winner_embed=winner_embed,
-        )
+        embeds, pending_embed = await run_audit(poll_message)
+        await interaction.followup.send(embeds=embeds)
+        return pending_embed
 
 
 def make_audit_view(poll_id, loading=False):
@@ -814,6 +823,9 @@ async def rebola_slash(interaction: discord.Interaction):
 
 @bot.hybrid_command(name="auditar", description="Audita a enquete da rodada")
 async def auditar(ctx):
+    if ctx.interaction:
+        await ctx.defer()
+
     poll_message = await resolve_command_poll(ctx)
     if poll_message is None:
         await ctx.send(
@@ -834,42 +846,58 @@ async def auditar(ctx):
 
     _audits_em_andamento.add(poll_message.id)
     try:
-        if ctx.interaction:
-            await ctx.defer()
-
-        embed, winner_embed = await perform_audit(poll_message)
-        await refresh_pending_voters(poll_message)
-        await send_audit_result(embed, poll_message, ctx=ctx, winner_embed=winner_embed)
+        embeds, pending_embed = await run_audit(poll_message)
+        await ctx.send(embeds=embeds)
     finally:
         _audits_em_andamento.discard(poll_message.id)
+    await edit_pending_message(poll_message, pending_embed)
 
 
-async def handle_poll_vote_change(payload):
-    entry = get_poll_entry(payload.message_id)
-    if not entry:
-        return
+PENDING_REFRESH_DELAY = 2.0
+_pending_refresh_tasks = {}
 
-    await asyncio.sleep(0.5)
-    channel = bot.get_channel(payload.channel_id)
+
+async def _refresh_after_votes(channel_id, message_id):
+    await asyncio.sleep(PENDING_REFRESH_DELAY)
+    channel = bot.get_channel(channel_id)
     if channel is None:
         try:
-            channel = await bot.fetch_channel(payload.channel_id)
+            channel = await bot.fetch_channel(channel_id)
         except discord.HTTPException:
             return
 
-    poll_message = await fetch_poll_message(channel, payload.message_id)
+    poll_message = await fetch_poll_message(channel, message_id)
     if poll_message is not None:
         await refresh_pending_voters(poll_message)
 
 
+def schedule_pending_refresh(payload):
+    """Agrupa votos próximos em uma única atualização da lista de quem não votou."""
+    if not get_poll_entry(payload.message_id):
+        return
+
+    previous = _pending_refresh_tasks.get(payload.message_id)
+    if previous is not None and not previous.done():
+        previous.cancel()
+
+    task = asyncio.create_task(_refresh_after_votes(payload.channel_id, payload.message_id))
+    _pending_refresh_tasks[payload.message_id] = task
+
+    def forget(done):
+        if _pending_refresh_tasks.get(payload.message_id) is done:
+            del _pending_refresh_tasks[payload.message_id]
+
+    task.add_done_callback(forget)
+
+
 @bot.event
 async def on_raw_poll_vote_add(payload):
-    await handle_poll_vote_change(payload)
+    schedule_pending_refresh(payload)
 
 
 @bot.event
 async def on_raw_poll_vote_remove(payload):
-    await handle_poll_vote_change(payload)
+    schedule_pending_refresh(payload)
 
 
 _synced = False
