@@ -394,15 +394,28 @@ async def refresh_pending_voters(poll_message):
         log.exception("Não foi possível atualizar a lista de quem ainda não votou")
 
 
+def winning_match_embed(nome, times):
+    esquerdo = "\n".join(times.get("esquerdo", [])) or "Ninguém"
+    direito = "\n".join(times.get("direito", [])) or "Ninguém"
+    embed = discord.Embed(
+        title=f"Partida escolhida: {nome}",
+        color=COLOR_OK,
+    )
+    embed.add_field(name="Time Esquerdo", value=esquerdo, inline=True)
+    embed.add_field(name="Time Direito", value=direito, inline=True)
+    return embed
+
+
 async def perform_audit(poll_message):
+    """Retorna o embed do resultado e o embed da partida vencedora, se aprovada."""
     try:
         poll_message = await poll_message.channel.fetch_message(poll_message.id)
     except discord.HTTPException:
-        return simple_embed("Auditoria", "Não consegui atualizar os dados dessa enquete.")
+        return simple_embed("Auditoria", "Não consegui atualizar os dados dessa enquete."), None
 
     poll = poll_message.poll
     if poll is None:
-        return simple_embed("Auditoria", "Essa mensagem não é uma enquete.")
+        return simple_embed("Auditoria", "Essa mensagem não é uma enquete."), None
 
     attach_poll_link_later = poll_message
     contagens = []
@@ -417,7 +430,7 @@ async def perform_audit(poll_message):
         return attach_poll_link(
             simple_embed("Auditoria", "Não houve votos suficientes para iniciar a auditoria."),
             attach_poll_link_later,
-        )
+        ), None
 
     vencedoras = [opcao for opcao, votos in contagens if votos == maior_contagem]
     if len(vencedoras) > 1:
@@ -429,7 +442,7 @@ async def perform_audit(poll_message):
                 "A auditoria só roda quando houver uma opção vencedora.",
             ),
             attach_poll_link_later,
-        )
+        ), None
 
     opcao_vencedora = vencedoras[0]
     if opcao_vencedora.text == "Rebola":
@@ -439,7 +452,7 @@ async def perform_audit(poll_message):
                 "A opção vencedora foi **Rebola**.",
             ),
             attach_poll_link_later,
-        )
+        ), None
 
     partidas = get_poll_roster(poll_message.id)
     if not partidas or opcao_vencedora.text not in partidas:
@@ -450,7 +463,7 @@ async def perform_audit(poll_message):
                 "Gere a enquete de novo com `!rebola` ou `/rebola`.",
             ),
             attach_poll_link_later,
-        )
+        ), None
 
     times = partidas[opcao_vencedora.text]
     time_esquerdo = times.get("esquerdo", [])
@@ -467,7 +480,7 @@ async def perform_audit(poll_message):
                 "mas não consegui listar quem votou.",
             ),
             attach_poll_link_later,
-        )
+        ), None
 
     links = load_links()
     votantes_esq = []
@@ -529,32 +542,35 @@ async def perform_audit(poll_message):
         ),
         inline=False,
     )
-    return attach_poll_link(embed, attach_poll_link_later)
+    vencedora = winning_match_embed(opcao_vencedora.text, times) if aprovada else None
+    return attach_poll_link(embed, attach_poll_link_later), vencedora
 
 
-async def send_audit_result(embed, poll_message, ctx=None, interaction=None):
+async def send_audit_result(embed, poll_message, ctx=None, interaction=None, winner_embed=None):
     if interaction is not None:
-        if interaction.response.is_done():
-            await interaction.followup.send(embed=embed)
-        else:
-            await interaction.response.send_message(embed=embed)
-        return
+        send = interaction.followup.send
+    elif ctx is not None:
+        send = ctx.send
+    else:
+        send = poll_message.channel.send
 
-    if ctx is not None:
-        await ctx.send(embed=embed)
-        return
+    await send(embed=embed)
+    if winner_embed is not None:
+        await send(embed=winner_embed)
 
-    await poll_message.channel.send(embed=embed)
+
+_audits_em_andamento = set()
 
 
 class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:(?P<poll_id>\d+)"):
-    def __init__(self, poll_id: int):
+    def __init__(self, poll_id: int, loading: bool = False):
         self.poll_id = poll_id
         super().__init__(
             discord.ui.Button(
-                label="Auditar",
-                style=discord.ButtonStyle.primary,
+                label="Auditando..." if loading else "Auditar",
+                style=discord.ButtonStyle.secondary if loading else discord.ButtonStyle.primary,
                 custom_id=f"auditar:{poll_id}",
+                disabled=loading,
             )
         )
 
@@ -563,7 +579,25 @@ class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:
         return cls(int(match["poll_id"]))
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+        if self.poll_id in _audits_em_andamento:
+            await interaction.response.send_message(
+                "A auditoria dessa enquete já está em andamento, aguarde o resultado.",
+                ephemeral=True,
+            )
+            return
+
+        _audits_em_andamento.add(self.poll_id)
+        try:
+            await interaction.response.edit_message(view=make_audit_view(self.poll_id, loading=True))
+            await self._run_audit(interaction)
+        finally:
+            _audits_em_andamento.discard(self.poll_id)
+            try:
+                await interaction.edit_original_response(view=make_audit_view(self.poll_id))
+            except discord.HTTPException:
+                log.exception("Não foi possível reativar o botão Auditar")
+
+    async def _run_audit(self, interaction: discord.Interaction):
         channel = interaction.channel
         if channel is None:
             await interaction.followup.send("Não consegui acessar o canal.", ephemeral=True)
@@ -577,14 +611,19 @@ class AuditButton(discord.ui.DynamicItem[discord.ui.Button], template=r"auditar:
             )
             return
 
-        embed = await perform_audit(poll_message)
+        embed, winner_embed = await perform_audit(poll_message)
         await refresh_pending_voters(poll_message)
-        await send_audit_result(embed, poll_message, interaction=interaction)
+        await send_audit_result(
+            embed,
+            poll_message,
+            interaction=interaction,
+            winner_embed=winner_embed,
+        )
 
 
-def make_audit_view(poll_id):
+def make_audit_view(poll_id, loading=False):
     view = discord.ui.View(timeout=None)
-    view.add_item(AuditButton(poll_id))
+    view.add_item(AuditButton(poll_id, loading=loading))
     return view
 
 
@@ -786,12 +825,23 @@ async def auditar(ctx):
         )
         return
 
-    if ctx.interaction:
-        await ctx.defer()
+    if poll_message.id in _audits_em_andamento:
+        await ctx.send(
+            "A auditoria dessa enquete já está em andamento, aguarde o resultado.",
+            ephemeral=True,
+        )
+        return
 
-    embed = await perform_audit(poll_message)
-    await refresh_pending_voters(poll_message)
-    await send_audit_result(embed, poll_message, ctx=ctx)
+    _audits_em_andamento.add(poll_message.id)
+    try:
+        if ctx.interaction:
+            await ctx.defer()
+
+        embed, winner_embed = await perform_audit(poll_message)
+        await refresh_pending_voters(poll_message)
+        await send_audit_result(embed, poll_message, ctx=ctx, winner_embed=winner_embed)
+    finally:
+        _audits_em_andamento.discard(poll_message.id)
 
 
 async def handle_poll_vote_change(payload):
